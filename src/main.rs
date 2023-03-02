@@ -3,41 +3,23 @@ mod color;
 mod ray;
 mod hittable;
 
-use vec3::{Vec3, Color, Point3, dot};
+use vec3::{Color, Point3};
 use ray::Ray;
 use std::error::Error;
-
-// Implement a way to generate a sphere in 3d space
-fn hit_sphere(center: &Point3, radius: f64, r: &Ray) -> f64 {
-    let oc = r.origin() - *center; // A - C
-
-    // a, b, c are basically coefficients of a quadratic equation
-    let a = r.direction().length().powi(2);
-    let half_b = dot(r.direction(), oc);
-    let c = dot(oc, oc) - radius.powi(2);
-
-    let discriminant = half_b.powi(2) - a * c;
-    if discriminant < 0.0 {
-        return -1.0;
-    } else {
-        return (-half_b - discriminant.sqrt()) / a;
-    }
-}
+use hittable::*;
+use hittable::sphere::Sphere;
+use hittable::hittable_list::{World};
 
 // Simple function to generate gradient
-fn ray_color(r: &Ray) -> Color {
-    let sphere_center = point3!(0, 0, -1);
-
-    let t = hit_sphere(&sphere_center, 0.5, r);
-    if t > 0.0 {
-        let N = (r.at(t) - sphere_center).unit();
-        return 0.5*color_rgb!(N.x() + 1.0, N.y() + 1.0, N.z() + 1.0);
+fn ray_color(r: &Ray, world: &World) -> Color {
+    if let Some(rec) = world.hit(r, 0.0, f64::INFINITY) {
+        // Set a background color since ray didn't hit anything
+        0.5 * (rec.normal + color_rgb!(1, 1, 1))
+    } else {
+        let unit_direction = r.direction().unit();
+        let t = 0.5 * (unit_direction.y() + 1.0);
+        (1.0 - t) * color_rgb!(1, 1, 1) + t * color_rgb!(0.5, 0.7, 1)
     }
-
-    // Otherwise, do the background
-    let unit_dir = r.direction().unit();
-    let t = 0.5 * (unit_dir.y() + 1.0);
-    return (1.0 - t) * vector3!(1, 1, 1) + t * vector3!(0.5, 0.7, 1.0);
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -45,6 +27,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     const ASPECT_RATIO: f32 = 16.0 / 9.0; // Width : Height
     const IMAGE_WIDTH: i32 = 400;
     const IMAGE_HEIGHT: i32 = (IMAGE_WIDTH as f32 / ASPECT_RATIO) as i32;
+
+    // World
+    let mut world = World::new();
+    world.push(Box::new(Sphere::new(Point3::new(0.0, 0.0, -1.0), 0.5)));
+    world.push(Box::new(Sphere::new(Point3::new(0.0, -100.5, -1.0), 100.0)));
 
     // Camera
     let viewport_height = 2.0;
@@ -72,7 +59,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             let direction = lower_left_corner + horizontal * u + vertical * v - origin;
 
             let ray = Ray::new(origin, direction);
-            let color_pixel = ray_color(&ray);
+            let color_pixel = ray_color(&ray, &world);
 
             // Cast and write the pixel to stream
             let mut s = String::new();
