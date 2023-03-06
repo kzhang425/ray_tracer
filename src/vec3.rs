@@ -76,6 +76,14 @@ impl Vec3 {
         let l = self.length();
         self / l
     }
+
+    pub fn format_color(self, samples_per_pixel: u64) -> String {
+        let ir = (256.0 * (self[0] / (samples_per_pixel as f64)).clamp(0.0, 0.999)) as u64;
+        let ig = (256.0 * (self[1] / (samples_per_pixel as f64)).clamp(0.0, 0.999)) as u64;
+        let ib = (256.0 * (self[2] / (samples_per_pixel as f64)).clamp(0.0, 0.999)) as u64;
+
+        format!("{} {} {}", ir, ig, ib)
+    }
 }
 
 // Implement traits that make working with this class easier

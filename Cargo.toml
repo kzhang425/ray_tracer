@@ -9,3 +9,4 @@ edition = "2021"
 rustc-test = "0.3.1"
 
 [dependencies]
+rand = "*"
